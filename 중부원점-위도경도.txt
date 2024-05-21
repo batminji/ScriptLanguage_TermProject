@@ -1,0 +1,17 @@
+from pyproj import Transformer
+
+# EPSG:2097 중부원점TM 좌표계
+epsg_2097 = 'epsg:2097'
+# EPSG:4326 WGS84 좌표계
+epsg_4326 = 'epsg:4326'
+
+# Transformer 객체 생성
+transformer = Transformer.from_crs(epsg_2097, epsg_4326)
+
+# 변환할 좌표 (EPSG:2097)
+x, y = 208180.0, 350210.0
+
+# 좌표 변환
+lon, lat = transformer.transform(x, y)
+
+print(f"위도: {lat}, 경도: {lon}")
