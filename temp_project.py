@@ -8,6 +8,7 @@ from googlemaps import Client
 import io
 import matplotlib.pyplot as plt
 
+
 class MainGUI:
     def __init__(self):
         self.root = tk.Tk()
@@ -55,6 +56,10 @@ class MainGUI:
         self.info_label = tk.Label(self.frame1, text="", justify=tk.LEFT)
         self.info_label.pack(side=tk.RIGHT, fill=tk.BOTH)
 
+        # 길찾기 버튼 생성 (초기에는 숨김)
+        self.directions_button = tk.Button(self.frame1, text="길찾기", command=self.show_directions_map)
+        self.directions_button.pack_forget()
+
         # 그래프 버튼 생성
         self.plot_button = tk.Button(self.frame2, text="그래프 보기", command=self.plot_bar_chart)
         self.plot_button.pack()
@@ -69,7 +74,8 @@ class MainGUI:
         self.send_email_button.pack()
 
         # 임의의 즐겨찾기 목록 추가
-        for business in ["미용업체1", "미용업체2", "미용업체3"]:
+        self.bookmarks = ["미용업체1", "미용업체2", "미용업체3"]
+        for business in self.bookmarks:
             self.bookmark_listbox.insert(tk.END, business)
 
         self.gu_combo.bind("<<ComboboxSelected>>", self.on_gu_select)
@@ -145,8 +151,10 @@ class MainGUI:
             salon_name = selected_salon.split(" (")[0]
             salon_data = next((salon for salon in self.salons if salon['name'] == salon_name), None)
             if salon_data:
+                self.selected_salon_data = salon_data  # 선택된 미용업체 데이터를 저장
                 self.update_salon_map(salon_data)
                 self.show_salon_info(salon_data)
+                self.directions_button.pack(side=tk.BOTTOM, fill=tk.BOTH)  # 길찾기 버튼 표시
 
     def update_salon_map(self, salon_data):
         gmaps = Client(key=self.Google_API_Key)
@@ -191,12 +199,62 @@ class MainGUI:
             self.canvas.create_text(x1 + bar_width / 2 - 5, y0 + 10 + 5, text=gu, anchor='n', angle=45)
             self.canvas.create_text(x1 + bar_width / 2 - 5, y1 - 10 + 5, text=counts[gu], anchor='s')
 
+    def show_directions_map(self):
+        salon_data = self.selected_salon_data  # 저장된 선택된 미용업체 데이터 사용
+        gmaps = Client(key=self.Google_API_Key)
+        transformer = Transformer.from_crs('epsg:2097', 'epsg:4326')
+        if salon_data['lat'] and salon_data['lng']:
+            x, y = float(salon_data['lat']), float(salon_data['lng'])
+            lat, lng = transformer.transform(x, y)
+            directions_map_url = f"https://maps.googleapis.com/maps/api/staticmap?center={lat},{lng}&zoom=16&size=400x400&maptype=roadmap"
+            marker_url = f"&markers=color:red%7C{lat},{lng}"
+            directions_map_url += marker_url
+            response = requests.get(directions_map_url + '&key=' + self.Google_API_Key)
+            image = Image.open(io.BytesIO(response.content))
+            photo = ImageTk.PhotoImage(image)
+
+            # 기존 내용을 모두 제거
+            for widget in self.frame1.winfo_children():
+                widget.pack_forget()
+
+            # 새 지도 표시
+            self.map_label = tk.Label(self.frame1, image=photo)
+            self.map_label.image = photo  # 이미지가 가비지 컬렉션되지 않도록 참조 유지
+            self.map_label.pack()
+
+            # 뒤로가기 버튼 생성
+            self.back_button = tk.Button(self.frame1, text="뒤로가기", command=self.go_back)
+            self.back_button.pack(side=tk.LEFT, padx=10, pady=10)
+
+            # 즐겨찾기 버튼 생성
+            self.bookmark_button = tk.Button(self.frame1, text="즐겨찾기 추가", command=self.add_to_bookmarks)
+            self.bookmark_button.pack(side=tk.RIGHT, padx=10, pady=10)
+
+    def go_back(self):
+        # 첫 번째 페이지의 위젯을 다시 표시
+        for widget in self.frame1.winfo_children():
+            widget.pack_forget()
+
+        self.gu_combo.pack()
+        self.map_label.pack()
+        self.salon_list.pack(side=tk.LEFT, fill=tk.BOTH)
+        self.scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        self.info_label.pack(side=tk.RIGHT, fill=tk.BOTH)
+        self.directions_button.pack(side=tk.BOTTOM, fill=tk.BOTH)
+
+    def add_to_bookmarks(self):
+        # 선택된 미용업체를 즐겨찾기 목록에 추가
+        salon_data = self.selected_salon_data
+        if salon_data['name'] not in self.bookmarks:
+            self.bookmarks.append(salon_data['name'])
+            self.bookmark_listbox.insert(tk.END, salon_data['name'])
+
     def send_email(self):
         # Gmail API 또는 smtplib를 사용하여 이메일 보내기 로직을 구현할 수 있습니다.
         # 여기에서는 실제 이메일 보내기 기능을 구현하기 보다는 간단하게 출력만 해보겠습니다.
-        bookmark_list = ["미용업체1", "미용업체2", "미용업체3"]  # 임의의 즐겨찾기 목록
         print("Following bookmarked businesses will be sent via email:")
-        for business in bookmark_list:
+        for business in self.bookmarks:
             print(business)
+
 
 MainGUI()
