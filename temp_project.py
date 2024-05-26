@@ -172,14 +172,24 @@ class MainGUI:
         for data in self.salons:
             counts[data['gu']] += 1
 
-        plt.figure(figsize=(10, 6))
-        plt.bar(counts.keys(), counts.values(), color='skyblue')
-        plt.xlabel('구')
-        plt.ylabel('미용업 수')
-        plt.title('서울시 구별 미용업 수')
-        plt.xticks(rotation=45)
-        plt.tight_layout()
-        plt.show()
+        max_salon_count = max(counts.values())
+
+        # 캔버스 생성
+        if hasattr(self, 'canvas'):
+            self.canvas.destroy()
+        self.canvas = tk.Canvas(self.frame2, width=800, height=600)
+        self.canvas.pack()
+
+        bar_width = 20
+        x_gap = 30
+        x0 = 60
+        y0 = 400  # y0 값을 늘려서 막대그래프가 캔버스 안에 들어오도록 조정
+        for i, gu in enumerate(self.gu_list):
+            x1 = x0 + i * (bar_width + x_gap)
+            y1 = y0 - 300 * counts[gu] / max_salon_count  # 막대의 높이를 조정
+            self.canvas.create_rectangle(x1, y1, x1 + bar_width, y0, fill='blue')
+            self.canvas.create_text(x1 + bar_width / 2 - 5, y0 + 10 + 5, text=gu, anchor='n', angle=45)
+            self.canvas.create_text(x1 + bar_width / 2 - 5, y1 - 10 + 5, text=counts[gu], anchor='s')
 
     def send_email(self):
         # Gmail API 또는 smtplib를 사용하여 이메일 보내기 로직을 구현할 수 있습니다.
