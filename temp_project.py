@@ -74,7 +74,7 @@ class MainGUI:
         self.send_email_button.pack()
 
         # 임의의 즐겨찾기 목록 추가
-        self.bookmarks = ["미용업체1", "미용업체2", "미용업체3"]
+        self.bookmarks = []
         for business in self.bookmarks:
             self.bookmark_listbox.insert(tk.END, business)
 
@@ -250,8 +250,6 @@ class MainGUI:
             self.bookmark_listbox.insert(tk.END, salon_data['name'])
 
     def send_email(self):
-        # Gmail API 또는 smtplib를 사용하여 이메일 보내기 로직을 구현할 수 있습니다.
-        # 여기에서는 실제 이메일 보내기 기능을 구현하기 보다는 간단하게 출력만 해보겠습니다.
         print("Following bookmarked businesses will be sent via email:")
         for business in self.bookmarks:
             print(business)
