@@ -43,7 +43,7 @@ class MainGUI:
         self.map_label = tk.Label(self.frame1)
         self.map_label.pack()
 
-        self.salon_list = tk.Listbox(self.frame1, width=60)
+        self.salon_list = tk.Listbox(self.frame1, width=50)
         self.salon_list.pack(side=tk.LEFT, fill=tk.BOTH)
 
         self.scrollbar = tk.Scrollbar(self.frame1)
@@ -54,7 +54,7 @@ class MainGUI:
 
         # 미용업체 정보 라벨 생성
         self.info_label = tk.Label(self.frame1, text="", justify=tk.LEFT)
-        self.info_label.pack(side=tk.RIGHT, fill=tk.BOTH)
+        self.info_label.place(x=360,y=450)
 
         # 길찾기 버튼 생성 (초기에는 숨김)
         self.directions_button = tk.Button(self.frame1, text="길찾기", command=self.show_directions_map)
@@ -216,6 +216,7 @@ class MainGUI:
             # 기존 내용을 모두 제거
             for widget in self.frame1.winfo_children():
                 widget.pack_forget()
+            self.info_label.place_forget()
 
             # 새 지도 표시
             self.map_label = tk.Label(self.frame1, image=photo)
@@ -239,7 +240,7 @@ class MainGUI:
         self.map_label.pack()
         self.salon_list.pack(side=tk.LEFT, fill=tk.BOTH)
         self.scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-        self.info_label.pack(side=tk.RIGHT, fill=tk.BOTH)
+        self.info_label.place(x=360, y=450)
         self.directions_button.pack(side=tk.BOTTOM, fill=tk.BOTH)
 
     def add_to_bookmarks(self):
