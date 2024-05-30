@@ -108,6 +108,7 @@ class MainGUI:
                     "lat": item.findtext("Y"),  # 중부원점Y
                     "lng": item.findtext("X"),  # 중부원점X
                     "gu": gu_name,  # 구 코드 -> 구 이름 변환
+                    "type": item.findtext("UPTAENM")    # 업체 종류
                 }
                 self.salons.append(data)
 
@@ -172,8 +173,20 @@ class MainGUI:
             self.map_label.image = photo
 
     def show_salon_info(self, salon_data):
-        info_text = f"Name: {salon_data['name']}\nAddress: {salon_data['address']}\nLatitude: {salon_data['lat']}\nLongitude: {salon_data['lng']}"
+        gmaps = Client(key=self.Google_API_Key)
+        place_result = gmaps.find_place(input=salon_data['name'], input_type='textquery', fields=['place_id'])
+        if place_result['candidates']:
+            place_id = place_result['candidates'][0]['place_id']
+            place_details = gmaps.place(place_id=place_id, fields=['formatted_phone_number', 'opening_hours'])
+            phone_number = place_details['result'].get('formatted_phone_number', 'N/A')
+            opening_hours = "\n".join(place_details['result'].get('opening_hours', {}).get('weekday_text', []))
+        else:
+            phone_number = 'N/A'
+            opening_hours = 'N/A'
+
+        info_text = f"Name: {salon_data['name']}\nAddress: {salon_data['address']}\nType: {salon_data['type']}\nPhone: {phone_number}\nOpening Hours: {opening_hours}"
         self.info_label.config(text=info_text)
+
 
     def plot_bar_chart(self):
         counts = {gu: 0 for gu in self.gu_list}
@@ -203,6 +216,10 @@ class MainGUI:
         salon_data = self.selected_salon_data  # 저장된 선택된 미용업체 데이터 사용
         gmaps = Client(key=self.Google_API_Key)
         transformer = Transformer.from_crs('epsg:2097', 'epsg:4326')
+
+        # 한국공대 위도경도
+        tuk_lat, tuk_lng = 37.2840, 127.0436
+
         if salon_data['lat'] and salon_data['lng']:
             x, y = float(salon_data['lat']), float(salon_data['lng'])
             lat, lng = transformer.transform(x, y)
