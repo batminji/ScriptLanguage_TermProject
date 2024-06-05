@@ -12,7 +12,16 @@ import matplotlib.pyplot as plt
 class MainGUI:
     def __init__(self):
         self.root = tk.Tk()
-        self.root.title("서울시 구별 미용업 정보")
+        self.root.title("미용~ 미용")
+
+        # 이미지 로드
+        self.off_star_image = Image.open("off_star.png")
+        self.off_star_image = self.off_star_image.resize((50, 50))
+        self.off_star_photo = ImageTk.PhotoImage(self.off_star_image)
+
+        self.on_star_image = Image.open("on_star.png")
+        self.on_star_image = self.on_star_image.resize((50, 50))
+        self.on_star_photo = ImageTk.PhotoImage(self.on_star_image)
 
         # Notebook 생성
         self.notebook = ttk.Notebook(self.root, width=800, height=600)
@@ -73,7 +82,7 @@ class MainGUI:
         self.send_email_button = tk.Button(self.frame3, text="Gmail 보내기", command=self.send_email)
         self.send_email_button.pack()
 
-        # 임의의 즐겨찾기 목록 추가
+        # 즐겨찾기 목록 추가
         self.bookmarks = []
         for business in self.bookmarks:
             self.bookmark_listbox.insert(tk.END, business)
@@ -245,8 +254,18 @@ class MainGUI:
             self.back_button.pack(side=tk.LEFT, padx=10, pady=10)
 
             # 즐겨찾기 버튼 생성
-            self.bookmark_button = tk.Button(self.frame1, text="즐겨찾기 추가", command=self.add_to_bookmarks)
+            self.bookmark_button = tk.Button(self.frame1, image=self.off_star_photo, command=self.toggle_bookmark)
             self.bookmark_button.pack(side=tk.RIGHT, padx=10, pady=10)
+
+    def toggle_bookmark(self):
+        # 버튼 이미지 토글
+        current_image = self.bookmark_button.cget('image')
+        if current_image == str(self.off_star_photo):
+            self.bookmark_button.config(image=self.on_star_photo)
+            self.add_to_bookmarks()
+        else:
+            self.bookmark_button.config(image=self.off_star_photo)
+            self.remove_from_bookmarks()
 
     def go_back(self):
         # 첫 번째 페이지의 위젯을 다시 표시
@@ -266,6 +285,14 @@ class MainGUI:
         if salon_data['name'] not in self.bookmarks:
             self.bookmarks.append(salon_data['name'])
             self.bookmark_listbox.insert(tk.END, salon_data['name'])
+
+    def remove_from_bookmarks(self):
+        # 선택된 미용업체를 즐겨찾기 목록에서 제거
+        salon_data = self.selected_salon_data
+        if salon_data['name'] in self.bookmarks:
+            self.bookmarks.remove(salon_data['name'])
+            idx = self.bookmark_listbox.get(0, tk.END).index(salon_data['name'])
+            self.bookmark_listbox.delete(idx)
 
     def send_email(self):
         print("Following bookmarked businesses will be sent via email:")
