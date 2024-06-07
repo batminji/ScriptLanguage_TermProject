@@ -8,6 +8,10 @@ from googlemaps import Client
 import io
 import matplotlib.pyplot as plt
 
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from tkinter import simpledialog
 
 class MainGUI:
     def __init__(self):
@@ -50,10 +54,17 @@ class MainGUI:
         self.gu_combo.pack()
 
         self.map_label = tk.Label(self.frame1)
-        self.map_label.pack()
+        self.map_label.pack(side=tk.TOP, anchor=tk.NW)
 
-        self.salon_list = tk.Listbox(self.frame1, width=50)
-        self.salon_list.pack(side=tk.LEFT, fill=tk.BOTH)
+        self.info_label = tk.Label(self.frame1, text="", justify=tk.LEFT)
+        self.info_label.place(x=400, y=100)
+
+        # 길찾기 버튼 생성 (초기에는 숨김)
+        self.directions_button = tk.Button(self.frame1, text="길찾기", command=self.show_directions_map)
+        self.directions_button.pack_forget()
+
+        self.salon_list = tk.Listbox(self.frame1, width=50, font=("Arial", 12))
+        self.salon_list.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
         self.scrollbar = tk.Scrollbar(self.frame1)
         self.scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
@@ -61,13 +72,6 @@ class MainGUI:
         self.salon_list.config(yscrollcommand=self.scrollbar.set)
         self.scrollbar.config(command=self.salon_list.yview)
 
-        # 미용업체 정보 라벨 생성
-        self.info_label = tk.Label(self.frame1, text="", justify=tk.LEFT)
-        self.info_label.place(x=360,y=450)
-
-        # 길찾기 버튼 생성 (초기에는 숨김)
-        self.directions_button = tk.Button(self.frame1, text="길찾기", command=self.show_directions_map)
-        self.directions_button.pack_forget()
 
         # 그래프 버튼 생성
         self.plot_button = tk.Button(self.frame2, text="그래프 보기", command=self.plot_bar_chart)
@@ -113,7 +117,7 @@ class MainGUI:
             if gu_name:
                 data = {
                     "name": item.findtext("BPLCNM"),  # 미용업체 이름
-                    "address": item.findtext("RDNWHLADDR"),  # 미용업체 주소
+                    "address": item.findtext("SITEWHLADDR"),  # 미용업체 주소
                     "lat": item.findtext("Y"),  # 중부원점Y
                     "lng": item.findtext("X"),  # 중부원점X
                     "gu": gu_name,  # 구 코드 -> 구 이름 변환
@@ -193,7 +197,10 @@ class MainGUI:
             phone_number = 'N/A'
             opening_hours = 'N/A'
 
-        info_text = f"Name: {salon_data['name']}\nAddress: {salon_data['address']}\nType: {salon_data['type']}\nPhone: {phone_number}\nOpening Hours: {opening_hours}"
+        salon_data['phone_number'] = phone_number
+        salon_data['opening_hours'] = opening_hours
+
+        info_text = f"{salon_data['name']}\n업체 종류 : {salon_data['type']}\n위치 : {salon_data['address']}\n전화번호 : {phone_number}\n영업시간\n{opening_hours}"
         self.info_label.config(text=info_text)
 
 
@@ -232,22 +239,34 @@ class MainGUI:
         if salon_data['lat'] and salon_data['lng']:
             x, y = float(salon_data['lat']), float(salon_data['lng'])
             lat, lng = transformer.transform(x, y)
-            directions_map_url = f"https://maps.googleapis.com/maps/api/staticmap?center={lat},{lng}&zoom=16&size=400x400&maptype=roadmap"
-            marker_url = f"&markers=color:red%7C{lat},{lng}"
-            directions_map_url += marker_url
-            response = requests.get(directions_map_url + '&key=' + self.Google_API_Key)
-            image = Image.open(io.BytesIO(response.content))
-            photo = ImageTk.PhotoImage(image)
+
+            # directions_result = gmaps.directions(
+            #     (tuk_lat, tuk_lng),
+            #     (lat, lng),
+            #     mode="driving"
+            # )
+            #
+            # polyline = directions_result[0]['overview_polyline']['points']
+            # print(f"Polyline: {polyline}")
+            #
+            # path_url = f"&path=enc:{polyline}"
+            # directions_map_url = f"https://maps.googleapis.com/maps/api/staticmap?size=600x400&maptype=roadmap"
+            # marker_url = f"&markers=color:blue%7C{tuk_lat},{tuk_lng}&markers=color:red%7C{salon_lat},{salon_lng}"
+            # full_url = directions_map_url + marker_url + path_url + '&key=' + self.Google_API_Key
+            #
+            # response = requests.get(full_url)
+            # image = Image.open(io.BytesIO(response.content))
+            # photo = ImageTk.PhotoImage(image)
 
             # 기존 내용을 모두 제거
             for widget in self.frame1.winfo_children():
                 widget.pack_forget()
             self.info_label.place_forget()
 
-            # 새 지도 표시
-            self.map_label = tk.Label(self.frame1, image=photo)
-            self.map_label.image = photo  # 이미지가 가비지 컬렉션되지 않도록 참조 유지
-            self.map_label.pack()
+            # # 새 지도 표시
+            # self.map_label = tk.Label(self.frame1, image=photo)
+            # self.map_label.image = photo  # 이미지가 가비지 컬렉션되지 않도록 참조 유지
+            # self.map_label.pack()
 
             # 뒤로가기 버튼 생성
             self.back_button = tk.Button(self.frame1, text="뒤로가기", command=self.go_back)
@@ -273,10 +292,10 @@ class MainGUI:
             widget.pack_forget()
 
         self.gu_combo.pack()
-        self.map_label.pack()
+        self.map_label.pack(side=tk.TOP, anchor=tk.NW)
         self.salon_list.pack(side=tk.LEFT, fill=tk.BOTH)
         self.scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-        self.info_label.place(x=360, y=450)
+        self.info_label.place(x=400, y=100)
         self.directions_button.pack(side=tk.BOTTOM, fill=tk.BOTH)
 
     def add_to_bookmarks(self):
@@ -295,9 +314,45 @@ class MainGUI:
             self.bookmark_listbox.delete(idx)
 
     def send_email(self):
-        print("Following bookmarked businesses will be sent via email:")
-        for business in self.bookmarks:
-            print(business)
+        recipient_email = simpledialog.askstring("Recipient Email", "이메일을 입력하세요 :")
 
+        # 즐겨찾기 목록 텍스트 준비
+        bookmark_text = ""
+        for bookmark in self.bookmarks:
+            salon_info = next((salon for salon in self.salons if salon['name'] == bookmark), None)
+            if salon_info:
+                bookmark_text += (
+                    f"이름: {salon_info['name']}\n"
+                    f"업체 종류: {salon_info['type']}\n"
+                    f"위치: {salon_info['address']}\n"
+                    f"전화번호: {salon_info.get('phone_number', 'N/A')}\n"
+                    f"영업시간: {salon_info.get('opening_hours', 'N/A')}\n"
+                    "-----------------------------\n"
+                )
+        if not bookmark_text:
+            bookmark_text = "즐겨찾기 목록이 비어 있습니다."
+
+        sender_email = "dkdus78655@gmail.com"
+        sender_password = "nexw okos qukc cvev"
+
+        # 이메일 내용 구성
+        msg = MIMEMultipart()
+        msg['From'] = sender_email
+        msg['To'] = recipient_email
+        msg['Subject'] = "즐겨찾기 목록"
+        body = f"즐겨찾기 목록:\n\n{bookmark_text}"
+        msg.attach(MIMEText(body, 'plain'))
+
+        try:
+            # Gmail SMTP 서버에 연결하여 이메일 전송
+            server = smtplib.SMTP('smtp.gmail.com', 587)
+            server.starttls()
+            server.login(sender_email, sender_password)
+            text = msg.as_string()
+            server.sendmail(sender_email, recipient_email, text)
+            server.quit()
+            tk.messagebox.showinfo("성공", "이메일이 성공적으로 전송되었습니다.")
+        except Exception as e:
+            tk.messagebox.showerror("오류", f"이메일 전송 중 오류가 발생했습니다.\n{str(e)}")
 
 MainGUI()
