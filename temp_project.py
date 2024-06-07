@@ -27,6 +27,10 @@ class MainGUI:
         self.on_star_image = self.on_star_image.resize((50, 50))
         self.on_star_photo = ImageTk.PhotoImage(self.on_star_image)
 
+        self.direction_image = Image.open("map.png")
+        self.direction_image = self.direction_image.resize((200, 200))
+        self.direction_photo = ImageTk.PhotoImage(self.direction_image)
+
         # Notebook 생성
         self.notebook = ttk.Notebook(self.root, width=800, height=600)
         self.notebook.pack()
@@ -56,14 +60,15 @@ class MainGUI:
         self.map_label = tk.Label(self.frame1)
         self.map_label.pack(side=tk.TOP, anchor=tk.NW)
 
-        self.info_label = tk.Label(self.frame1, text="", justify=tk.LEFT)
-        self.info_label.place(x=400, y=100)
+        self.info_label = tk.Text(self.frame1, wrap=tk.WORD, font=("돋움", 12), width=50, height=20)
+        self.info_label.place(x=410, y=50)
+        self.info_label.config(state=tk.DISABLED)
 
         # 길찾기 버튼 생성 (초기에는 숨김)
-        self.directions_button = tk.Button(self.frame1, text="길찾기", command=self.show_directions_map)
+        self.directions_button = tk.Button(self.frame1, image=self.direction_photo, command=self.show_directions_map)
         self.directions_button.pack_forget()
 
-        self.salon_list = tk.Listbox(self.frame1, width=50, font=("Arial", 12))
+        self.salon_list = tk.Listbox(self.frame1, width=70, font=("돋움", 12))
         self.salon_list.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
         self.scrollbar = tk.Scrollbar(self.frame1)
@@ -80,7 +85,7 @@ class MainGUI:
         self.bookmark_listbox = tk.Listbox(self.frame3, width=60)
         self.bookmark_listbox.pack(side=tk.LEFT, fill=tk.BOTH)
 
-        self.bookmark_label = tk.Label(self.frame3, text="즐겨찾기 목록", font=("Helvetica", 16))
+        self.bookmark_label = tk.Label(self.frame3, text="즐겨찾기 목록", font=("돋움", 16))
         self.bookmark_label.pack()
 
         self.send_email_button = tk.Button(self.frame3, text="Gmail 보내기", command=self.send_email)
@@ -117,7 +122,7 @@ class MainGUI:
             if gu_name:
                 data = {
                     "name": item.findtext("BPLCNM"),  # 미용업체 이름
-                    "address": item.findtext("SITEWHLADDR"),  # 미용업체 주소
+                    "address": item.findtext("RDNWHLADDR"),  # 미용업체 주소
                     "lat": item.findtext("Y"),  # 중부원점Y
                     "lng": item.findtext("X"),  # 중부원점X
                     "gu": gu_name,  # 구 코드 -> 구 이름 변환
@@ -168,7 +173,7 @@ class MainGUI:
                 self.selected_salon_data = salon_data  # 선택된 미용업체 데이터를 저장
                 self.update_salon_map(salon_data)
                 self.show_salon_info(salon_data)
-                self.directions_button.pack(side=tk.BOTTOM, fill=tk.BOTH)  # 길찾기 버튼 표시
+                self.directions_button.pack(side=tk.RIGHT, expand=True)
 
     def update_salon_map(self, salon_data):
         gmaps = Client(key=self.Google_API_Key)
@@ -201,8 +206,22 @@ class MainGUI:
         salon_data['opening_hours'] = opening_hours
 
         info_text = f"{salon_data['name']}\n업체 종류 : {salon_data['type']}\n위치 : {salon_data['address']}\n전화번호 : {phone_number}\n영업시간\n{opening_hours}"
-        self.info_label.config(text=info_text)
 
+        self.info_label.config(state=tk.NORMAL)  # 편집 가능 상태로 설정
+        self.info_label.delete(1.0, tk.END)  # 기존 텍스트 삭제
+        self.info_label.insert(tk.END, f"{salon_data['name']}\n", 'bold')
+        self.info_label.insert(tk.END, f"업체 종류 : ", 'bold')
+        self.info_label.insert(tk.END, f"{salon_data['type']}\n")
+        self.info_label.insert(tk.END, f"위치 : ", 'bold')
+        self.info_label.insert(tk.END, f"{salon_data['address']}\n")
+        self.info_label.insert(tk.END, f"전화번호 : ", 'bold')
+        self.info_label.insert(tk.END, f"{phone_number}\n")
+        self.info_label.insert(tk.END, "\n영업시간\n", 'bold')
+        self.info_label.insert(tk.END, f"{opening_hours}")
+        self.info_label.config(state=tk.DISABLED)  # 다시 편집 불가 상태로 설정
+
+        # 'bold' 태그를 굵은 글씨로 설정
+        self.info_label.tag_configure('bold', font=("돋움", 12, "bold"))
 
     def plot_bar_chart(self):
         counts = {gu: 0 for gu in self.gu_list}
@@ -240,33 +259,33 @@ class MainGUI:
             x, y = float(salon_data['lat']), float(salon_data['lng'])
             lat, lng = transformer.transform(x, y)
 
-            # directions_result = gmaps.directions(
-            #     (tuk_lat, tuk_lng),
-            #     (lat, lng),
-            #     mode="driving"
-            # )
-            #
-            # polyline = directions_result[0]['overview_polyline']['points']
-            # print(f"Polyline: {polyline}")
-            #
-            # path_url = f"&path=enc:{polyline}"
-            # directions_map_url = f"https://maps.googleapis.com/maps/api/staticmap?size=600x400&maptype=roadmap"
-            # marker_url = f"&markers=color:blue%7C{tuk_lat},{tuk_lng}&markers=color:red%7C{salon_lat},{salon_lng}"
-            # full_url = directions_map_url + marker_url + path_url + '&key=' + self.Google_API_Key
-            #
-            # response = requests.get(full_url)
-            # image = Image.open(io.BytesIO(response.content))
-            # photo = ImageTk.PhotoImage(image)
+            directions_result = gmaps.directions(
+                (tuk_lat, tuk_lng),
+                (lat, lng),
+                mode="driving"
+            )
+
+            polyline = directions_result[0]['overview_polyline']['points']
+            print(f"Polyline: {polyline}")
+
+            path_url = f"&path=enc:{polyline}"
+            directions_map_url = f"https://maps.googleapis.com/maps/api/staticmap?size=600x400&maptype=roadmap"
+            marker_url = f"&markers=color:blue%7C{tuk_lat},{tuk_lng}&markers=color:red%7C{salon_lat},{salon_lng}"
+            full_url = directions_map_url + marker_url + path_url + '&key=' + self.Google_API_Key
+
+            response = requests.get(full_url)
+            image = Image.open(io.BytesIO(response.content))
+            photo = ImageTk.PhotoImage(image)
 
             # 기존 내용을 모두 제거
             for widget in self.frame1.winfo_children():
                 widget.pack_forget()
             self.info_label.place_forget()
 
-            # # 새 지도 표시
-            # self.map_label = tk.Label(self.frame1, image=photo)
-            # self.map_label.image = photo  # 이미지가 가비지 컬렉션되지 않도록 참조 유지
-            # self.map_label.pack()
+            # 새 지도 표시
+            self.map_label = tk.Label(self.frame1, image=photo)
+            self.map_label.image = photo  # 이미지가 가비지 컬렉션되지 않도록 참조 유지
+            self.map_label.pack()
 
             # 뒤로가기 버튼 생성
             self.back_button = tk.Button(self.frame1, text="뒤로가기", command=self.go_back)
@@ -293,10 +312,10 @@ class MainGUI:
 
         self.gu_combo.pack()
         self.map_label.pack(side=tk.TOP, anchor=tk.NW)
-        self.salon_list.pack(side=tk.LEFT, fill=tk.BOTH)
+        self.salon_list.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         self.scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-        self.info_label.place(x=400, y=100)
-        self.directions_button.pack(side=tk.BOTTOM, fill=tk.BOTH)
+        self.info_label.place(x=400, y=50)
+        self.directions_button.pack(side=tk.RIGHT, expand=True)
 
     def add_to_bookmarks(self):
         # 선택된 미용업체를 즐겨찾기 목록에 추가
@@ -314,7 +333,7 @@ class MainGUI:
             self.bookmark_listbox.delete(idx)
 
     def send_email(self):
-        recipient_email = simpledialog.askstring("Recipient Email", "이메일을 입력하세요 :")
+        recipient_email = simpledialog.askstring("Gmail 보내기", "enter gmail")
 
         # 즐겨찾기 목록 텍스트 준비
         bookmark_text = ""
