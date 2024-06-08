@@ -253,52 +253,40 @@ class MainGUI:
         transformer = Transformer.from_crs('epsg:2097', 'epsg:4326')
 
         # 한국공대 위도경도
-        tuk_lat, tuk_lng = 37.2840, 127.0436
+        tuk_lat, tuk_lng = 37.339496586083, 126.73287520461
 
         if salon_data['lat'] and salon_data['lng']:
             x, y = float(salon_data['lat']), float(salon_data['lng'])
             lat, lng = transformer.transform(x, y)  # 변환된 위도와 경도
 
-            # Directions 요청
-            directions_result = gmaps.directions(
-                (tuk_lat, tuk_lng),  # 출발지: 한국공대
-                (lat, lng),  # 목적지: 미용업체
-                mode="driving"  # 운전 모드
-            )
-            print(directions_result)
-            if directions_result:
-                polyline = directions_result[0]['overview_polyline']['points']
-                print(f"Polyline: {polyline}")
+            # 직선으로 경로 표시
+            map_url = f"https://maps.googleapis.com/maps/api/staticmap?size=600x400&maptype=roadmap"
+            marker_url = f"&markers=color:blue%7C{tuk_lat},{tuk_lng}&markers=color:red%7C{lat},{lng}"
+            path_url = f"&path=color:0x0000ff%7Cweight:5%7C{tuk_lat},{tuk_lng}%7C{lat},{lng}"
+            full_url = map_url + marker_url + path_url + '&key=' + self.Google_API_Key
 
-                # 지도에 경로와 함께 표시
-                path_url = f"&path=enc:{polyline}"
-                directions_map_url = f"https://maps.googleapis.com/maps/api/staticmap?size=600x400&maptype=roadmap"
-                marker_url = f"&markers=color:blue%7C{tuk_lat},{tuk_lng}&markers=color:red%7C{lat},{lng}"
-                full_url = directions_map_url + marker_url + path_url + '&key=' + self.Google_API_Key
+            response = requests.get(full_url)
+            image = Image.open(io.BytesIO(response.content))
+            photo = ImageTk.PhotoImage(image)
 
-                response = requests.get(full_url)
-                image = Image.open(io.BytesIO(response.content))
-                photo = ImageTk.PhotoImage(image)
+            # 기존 내용을 모두 제거
+            for widget in self.frame1.winfo_children():
+                widget.pack_forget()
+            self.info_label.place_forget()
 
-                # 기존 내용을 모두 제거
-                for widget in self.frame1.winfo_children():
-                    widget.pack_forget()
-                self.info_label.place_forget()
+            # 새 지도 표시
+            self.map_label = tk.Label(self.frame1, image=photo)
+            self.map_label.image = photo  # 이미지가 가비지 컬렉션되지 않도록 참조 유지
+            self.map_label.pack()
 
-                # 새 지도 표시
-                self.map_label = tk.Label(self.frame1, image=photo)
-                self.map_label.image = photo  # 이미지가 가비지 컬렉션되지 않도록 참조 유지
-                self.map_label.pack()
+            # 뒤로가기 버튼 생성
+            self.back_button = tk.Button(self.frame1, text="뒤로가기", command=self.go_back)
+            self.back_button.pack(side=tk.LEFT, padx=10, pady=10)
 
-                # 뒤로가기 버튼 생성
-                self.back_button = tk.Button(self.frame1, text="뒤로가기", command=self.go_back)
-                self.back_button.pack(side=tk.LEFT, padx=10, pady=10)
+            # 즐겨찾기 버튼 생성
+            self.bookmark_button = tk.Button(self.frame1, image=self.off_star_photo, command=self.toggle_bookmark)
+            self.bookmark_button.pack(side=tk.RIGHT, padx=10, pady=10)
 
-                # 즐겨찾기 버튼 생성
-                self.bookmark_button = tk.Button(self.frame1, image=self.off_star_photo, command=self.toggle_bookmark)
-                self.bookmark_button.pack(side=tk.RIGHT, padx=10, pady=10)
-            else:
-                tk.messagebox.showerror("오류", "경로를 찾을 수 없습니다.")
 
     def toggle_bookmark(self):
         # 버튼 이미지 토글
@@ -319,8 +307,9 @@ class MainGUI:
         self.map_label.pack(side=tk.TOP, anchor=tk.NW)
         self.salon_list.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         self.scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-        self.info_label.place(x=400, y=50)
+        self.info_label.place(x=410, y=50)
         self.directions_button.pack(side=tk.RIGHT, expand=True)
+        self.update_salon_map(self.selected_salon_data)
 
     def add_to_bookmarks(self):
         # 선택된 미용업체를 즐겨찾기 목록에 추가
