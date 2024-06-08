@@ -13,6 +13,9 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from tkinter import simpledialog
 
+import telepot
+from tkinter import simpledialog
+
 class MainGUI:
     def __init__(self):
         self.root = tk.Tk()
@@ -91,6 +94,13 @@ class MainGUI:
         self.send_email_button = tk.Button(self.frame3, text="Gmail 보내기", command=self.send_email)
         self.send_email_button.pack()
 
+        # Telegram 봇 초기화
+        self.telegram_bot = telepot.Bot('7354968185:AAEHVK_dJNxIReT7u9PH0EcaHbzeFj15u-k')
+
+        # Telegram 보내기 버튼 생성
+        self.send_telegram_button = tk.Button(self.frame3, text="Telegram 보내기", command=self.send_telegram)
+        self.send_telegram_button.pack()
+
         # 즐겨찾기 목록 추가
         self.bookmarks = []
         for business in self.bookmarks:
@@ -102,6 +112,33 @@ class MainGUI:
         self.update_map()
 
         self.root.mainloop()
+
+    def send_telegram(self):
+        # ID 입력 받기
+        recipient_id = simpledialog.askstring("Telegram 보내기", "Telegram ID를 입력하세요.")
+
+        # 즐겨찾기 목록 텍스트 준비
+        bookmark_text = ""
+        for bookmark in self.bookmarks:
+            salon_info = next((salon for salon in self.salons if salon['name'] == bookmark), None)
+            if salon_info:
+                bookmark_text += (
+                    f"이름: {salon_info['name']}\n"
+                    f"업체 종류: {salon_info['type']}\n"
+                    f"위치: {salon_info['address']}\n"
+                    f"전화번호: {salon_info.get('phone_number', 'N/A')}\n"
+                    f"영업시간: {salon_info.get('opening_hours', 'N/A')}\n"
+                    "-----------------------------\n"
+                )
+        if not bookmark_text:
+            bookmark_text = "즐겨찾기 목록이 비어 있습니다."
+
+        try:
+            # Telegram으로 메시지 전송
+            self.telegram_bot.sendMessage(recipient_id, bookmark_text)
+            tk.messagebox.showinfo("성공", "Telegram으로 메시지가 성공적으로 전송되었습니다.")
+        except Exception as e:
+            tk.messagebox.showerror("오류", f"Telegram 메시지 전송 중 오류가 발생했습니다.\n{str(e)}")
 
     def get_gu_list(self):
         url = f"http://openapi.seoul.go.kr:8088/{self.api_key}/xml/LOCALDATA_051801/1/1000/"
