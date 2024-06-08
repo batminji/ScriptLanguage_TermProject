@@ -7,7 +7,6 @@ from pyproj import Transformer
 from googlemaps import Client
 import io
 import matplotlib.pyplot as plt
-
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -176,7 +175,6 @@ class MainGUI:
                 self.directions_button.pack(side=tk.RIGHT, expand=True)
 
     def update_salon_map(self, salon_data):
-        gmaps = Client(key=self.Google_API_Key)
         transformer = Transformer.from_crs('epsg:2097', 'epsg:4326')
         if salon_data['lat'] and salon_data['lng']:
             x, y = float(salon_data['lat']), float(salon_data['lng'])
@@ -253,25 +251,17 @@ class MainGUI:
         transformer = Transformer.from_crs('epsg:2097', 'epsg:4326')
 
         # 한국공대 위도경도
-        tuk_lat, tuk_lng = 37.2840, 127.0436
+        tuk_lat, tuk_lng = 37.339496586083, 126.73287520461
 
         if salon_data['lat'] and salon_data['lng']:
             x, y = float(salon_data['lat']), float(salon_data['lng'])
             lat, lng = transformer.transform(x, y)
 
-            directions_result = gmaps.directions(
-                (tuk_lat, tuk_lng),
-                (lat, lng),
-                mode="driving"
-            )
-
-            polyline = directions_result[0]['overview_polyline']['points']
-            print(f"Polyline: {polyline}")
-
-            path_url = f"&path=enc:{polyline}"
-            directions_map_url = f"https://maps.googleapis.com/maps/api/staticmap?size=600x400&maptype=roadmap"
-            marker_url = f"&markers=color:blue%7C{tuk_lat},{tuk_lng}&markers=color:red%7C{salon_lat},{salon_lng}"
-            full_url = directions_map_url + marker_url + path_url + '&key=' + self.Google_API_Key
+            # 직선으로 경로 표시
+            map_url = f"https://maps.googleapis.com/maps/api/staticmap?size=600x400&maptype=roadmap"
+            marker_url = f"&markers=color:blue%7C{tuk_lat},{tuk_lng}&markers=color:red%7C{lat},{lng}"
+            path_url = f"&path=color:0x0000ff%7Cweight:5%7C{tuk_lat},{tuk_lng}%7C{lat},{lng}"
+            full_url = map_url + marker_url + path_url + '&key=' + self.Google_API_Key
 
             response = requests.get(full_url)
             image = Image.open(io.BytesIO(response.content))
@@ -306,7 +296,6 @@ class MainGUI:
             self.remove_from_bookmarks()
 
     def go_back(self):
-        # 첫 번째 페이지의 위젯을 다시 표시
         for widget in self.frame1.winfo_children():
             widget.pack_forget()
 
@@ -314,8 +303,9 @@ class MainGUI:
         self.map_label.pack(side=tk.TOP, anchor=tk.NW)
         self.salon_list.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         self.scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-        self.info_label.place(x=400, y=50)
+        self.info_label.place(x=410, y=50)
         self.directions_button.pack(side=tk.RIGHT, expand=True)
+        self.update_map()
 
     def add_to_bookmarks(self):
         # 선택된 미용업체를 즐겨찾기 목록에 추가
