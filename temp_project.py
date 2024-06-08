@@ -257,43 +257,48 @@ class MainGUI:
 
         if salon_data['lat'] and salon_data['lng']:
             x, y = float(salon_data['lat']), float(salon_data['lng'])
-            lat, lng = transformer.transform(x, y)
+            lat, lng = transformer.transform(x, y)  # 변환된 위도와 경도
 
+            # Directions 요청
             directions_result = gmaps.directions(
-                (tuk_lat, tuk_lng),
-                (lat, lng),
-                mode="driving"
+                (tuk_lat, tuk_lng),  # 출발지: 한국공대
+                (lat, lng),  # 목적지: 미용업체
+                mode="driving"  # 운전 모드
             )
+            print(directions_result)
+            if directions_result:
+                polyline = directions_result[0]['overview_polyline']['points']
+                print(f"Polyline: {polyline}")
 
-            polyline = directions_result[0]['overview_polyline']['points']
-            print(f"Polyline: {polyline}")
+                # 지도에 경로와 함께 표시
+                path_url = f"&path=enc:{polyline}"
+                directions_map_url = f"https://maps.googleapis.com/maps/api/staticmap?size=600x400&maptype=roadmap"
+                marker_url = f"&markers=color:blue%7C{tuk_lat},{tuk_lng}&markers=color:red%7C{lat},{lng}"
+                full_url = directions_map_url + marker_url + path_url + '&key=' + self.Google_API_Key
 
-            path_url = f"&path=enc:{polyline}"
-            directions_map_url = f"https://maps.googleapis.com/maps/api/staticmap?size=600x400&maptype=roadmap"
-            marker_url = f"&markers=color:blue%7C{tuk_lat},{tuk_lng}&markers=color:red%7C{salon_lat},{salon_lng}"
-            full_url = directions_map_url + marker_url + path_url + '&key=' + self.Google_API_Key
+                response = requests.get(full_url)
+                image = Image.open(io.BytesIO(response.content))
+                photo = ImageTk.PhotoImage(image)
 
-            response = requests.get(full_url)
-            image = Image.open(io.BytesIO(response.content))
-            photo = ImageTk.PhotoImage(image)
+                # 기존 내용을 모두 제거
+                for widget in self.frame1.winfo_children():
+                    widget.pack_forget()
+                self.info_label.place_forget()
 
-            # 기존 내용을 모두 제거
-            for widget in self.frame1.winfo_children():
-                widget.pack_forget()
-            self.info_label.place_forget()
+                # 새 지도 표시
+                self.map_label = tk.Label(self.frame1, image=photo)
+                self.map_label.image = photo  # 이미지가 가비지 컬렉션되지 않도록 참조 유지
+                self.map_label.pack()
 
-            # 새 지도 표시
-            self.map_label = tk.Label(self.frame1, image=photo)
-            self.map_label.image = photo  # 이미지가 가비지 컬렉션되지 않도록 참조 유지
-            self.map_label.pack()
+                # 뒤로가기 버튼 생성
+                self.back_button = tk.Button(self.frame1, text="뒤로가기", command=self.go_back)
+                self.back_button.pack(side=tk.LEFT, padx=10, pady=10)
 
-            # 뒤로가기 버튼 생성
-            self.back_button = tk.Button(self.frame1, text="뒤로가기", command=self.go_back)
-            self.back_button.pack(side=tk.LEFT, padx=10, pady=10)
-
-            # 즐겨찾기 버튼 생성
-            self.bookmark_button = tk.Button(self.frame1, image=self.off_star_photo, command=self.toggle_bookmark)
-            self.bookmark_button.pack(side=tk.RIGHT, padx=10, pady=10)
+                # 즐겨찾기 버튼 생성
+                self.bookmark_button = tk.Button(self.frame1, image=self.off_star_photo, command=self.toggle_bookmark)
+                self.bookmark_button.pack(side=tk.RIGHT, padx=10, pady=10)
+            else:
+                tk.messagebox.showerror("오류", "경로를 찾을 수 없습니다.")
 
     def toggle_bookmark(self):
         # 버튼 이미지 토글
