@@ -91,14 +91,23 @@ class MainGUI:
         self.bookmark_label = tk.Label(self.frame3, text="즐겨찾기 목록", font=("돋움", 16))
         self.bookmark_label.pack()
 
-        self.send_email_button = tk.Button(self.frame3, text="Gmail 보내기", command=self.send_email)
+        self.email_image = Image.open("email.png")
+        self.email_image = self.email_image.resize((50, 50))
+        self.email_photo = ImageTk.PhotoImage(self.email_image)
+
+        self.send_email_button = tk.Button(self.frame3, image=self.email_photo, command=self.send_email)
         self.send_email_button.pack()
 
         # Telegram 봇 초기화
         self.telegram_bot = telepot.Bot('7354968185:AAEHVK_dJNxIReT7u9PH0EcaHbzeFj15u-k')
 
-        # Telegram 보내기 버튼 생성
-        self.send_telegram_button = tk.Button(self.frame3, text="Telegram 보내기", command=self.send_telegram)
+        # 탤래그램 보내기 버튼 이미지 로드
+        self.telegram_image = Image.open("telegram.png")
+        self.telegram_image = self.telegram_image.resize((50, 50))
+        self.telegram_photo = ImageTk.PhotoImage(self.telegram_image)
+
+        # 탤래그램 보내기 버튼 생성
+        self.send_telegram_button = tk.Button(self.frame3, image=self.telegram_photo, command=self.send_telegram)
         self.send_telegram_button.pack()
 
         # 즐겨찾기 목록 추가
