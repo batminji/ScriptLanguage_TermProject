@@ -16,6 +16,9 @@ from tkinter import simpledialog
 import telepot
 from tkinter import simpledialog
 
+# 7262057044
+# minjiconan@gmail.com
+
 class MainGUI:
     def __init__(self):
         self.root = tk.Tk()
