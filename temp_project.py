@@ -15,6 +15,7 @@ from tkinter import simpledialog
 
 import telepot
 from tkinter import simpledialog
+import spam
 
 class MainGUI:
     def __init__(self):
@@ -222,7 +223,6 @@ class MainGUI:
                 self.directions_button.pack(side=tk.RIGHT, expand=True)
 
     def update_salon_map(self, salon_data):
-        gmaps = Client(key=self.Google_API_Key)
         transformer = Transformer.from_crs('epsg:2097', 'epsg:4326')
         if salon_data['lat'] and salon_data['lng']:
             x, y = float(salon_data['lat']), float(salon_data['lng'])
